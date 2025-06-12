@@ -1,22 +1,33 @@
 #include <stdio.h>
-#include "particle.h"
+#include "simulation.h"
 
 int main() {
-    // Create an instance of our Particle struct on the stack
-    Particle p1;
-    p1.id = 1;
-    p1.mass = 1.0; // e.g., in solar masses
-    p1.position[0] = 0.0; // x
-    p1.position[1] = 0.0; // y
-    p1.position[2] = 0.0; // z
-    p1.velocity[0] = 0.0;
-    p1.velocity[1] = 0.0;
-    p1.velocity[2] = 0.0;
+    SimulationState state;
+    state.particle_count = 1;
+    state.current_time = 0.0;
 
-    printf("Created Particle ID %d:\n", p1.id);
-    printf("  Mass: %f\n", p1.mass);
-    printf("  Position: (%f, %f, %f)\n", p1.position[0], p1.position[1], p1.position[2]);
-    printf("  Velocity: (%f, %f, %f)\n", p1.velocity[0], p1.velocity[1], p1.velocity[2]);
+    // Initialize our single particle at the origin with no initial velocity
+    state.particles[0] = (Particle){
+        .id = 1,
+        .mass = 1.0,
+        .position = {0.0, 0.0, 0.0},
+        .velocity = {0.0, 0.0, 0.0}
+    };
+
+    double dt = 0.1; // Timestep of 0.1 seconds
+    int num_steps = 20;
+
+    printf("Starting simulation...\n");
+    printf("Step | Time | Y-Position\n");
+    printf("-----|------|-----------\n");
+
+    for (int i = 0; i <= num_steps; i++) {
+        // Print current state
+        printf("%4d | %4.1f | %9.4f\n", i, state.current_time, state.particles[0].position[1]);
+
+        // Advance the simulation
+        simulation_step(&state, dt);
+    }
 
     return 0;
 }
