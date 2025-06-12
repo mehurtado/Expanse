@@ -1,31 +1,38 @@
+// src/main.c
 #include <stdio.h>
-#include "simulation.h"
+
+// Include the necessary Lua headers
+#include <lua.h>
+#include <lualib.h>
+#include <lauxlib.h>
 
 int main() {
-    SimulationState state;
-    state.current_time = 0.0;
-
-    load_simulation_state("init.txt", &state);
-
-    if (state.particle_count == 0) {
-        printf("Failed to load particles. Exiting.\n");
+    // 1. Create a new Lua state (interpreter instance)
+    lua_State *L = luaL_newstate();
+    if (L == NULL) {
+        fprintf(stderr, "Error creating Lua state.\n");
         return 1;
     }
 
-    printf("Loaded %d particle(s).\nStarting simulation...\n", state.particle_count);
+    // 2. Load the standard Lua libraries (print, math, etc.)
+    luaL_openlibs(L);
 
-    double dt = 3600 * 24; // Timestep of one day in seconds
-    int num_steps = 365;
+    printf("C engine: Loading and running main.lua...\n");
 
-    // Initial force calculation
-    apply_forces(&state);
-
-    for (int i = 0; i <= num_steps; i++) {
-        if (i % 10 == 0) { // Print output every 10 steps
-             printf("Day %3d: Pos=(%.2e, %.2e, %.2e)\n", i, state.particles[0].position[0], state.particles[0].position[1], state.particles[0].position[2]);
-        }
-        simulation_step(&state, dt);
+    // 3. Load and run the Lua script
+    int result = luaL_dofile(L, "main.lua");
+    if (result != LUA_OK) {
+        // If there's an error, it will be on top of the stack.
+        // Print it to the console.
+        const char* error_msg = lua_tostring(L, -1);
+        fprintf(stderr, "Lua error: %s\n", error_msg);
+        lua_pop(L, 1); // Remove error message from stack
     }
+
+    printf("C engine: Script finished.\n");
+
+    // 4. Clean up and close the Lua state
+    lua_close(L);
 
     return 0;
 }
