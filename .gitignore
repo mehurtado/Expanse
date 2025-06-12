@@ -1,12 +1,12 @@
-# Compiled files
+# Compiled object files
 *.o
+
+# Executables and libraries
+Astraeus
 *.out
 *.exe
 *.dylib
 *.so
-
-# Executable file
-Astraeus
 
 # Build directory
 build/
