@@ -14,4 +14,10 @@ typedef struct {
 // This is the main function that will advance the simulation by one step
 void simulation_step(SimulationState* state, double dt);
 
+// Ths function initializes the simulation state
+void load_simulation_state(const char* filename, SimulationState* state);
+
+// This function applies forces to all particles based on their current positions
+void apply_forces(SimulationState* state);
+
 #endif // SIMULATION_H

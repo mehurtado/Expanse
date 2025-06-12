@@ -7,6 +7,7 @@ typedef struct {
     double mass;
     double position[3]; // [x, y, z]
     double velocity[3]; // [vx, vy, vz]
+    double acceleration[3]; // [ax, ay, az]
     int id;
 } Particle;
 

@@ -1,44 +1,105 @@
+// src/simulation.c
 #include "simulation.h"
+#include <stdio.h>
+#include <string.h>
+#include <math.h>
 
-// This function calculates the forces on each particle.
-// For now, we'll use a simple, constant downward gravity as a test.
-void calculate_forces(SimulationState* state) {
-    // Constant downward acceleration (e.g., -9.8 m/s^2 in the y-direction)
-    const double gravity[3] = {0.0, -9.8, 0.0};
+// Gravitational constant and a central mass at the origin
+const double G = 6.67430e-11;
+const double M_central = 1.989e30; // Mass of the Sun
 
+// Calculates forces and updates particle accelerations
+void apply_forces(SimulationState* state) {
     for (int i = 0; i < state->particle_count; i++) {
-        // F = m * a  =>  a = F / m
-        // Here we are calculating acceleration from the force field.
-        // Since our "force" is just constant gravity (an acceleration),
-        // we apply it directly, ignoring mass for this simple test.
+        Particle* p = &state->particles[i];
 
-        // We'll store the calculated acceleration temporarily in the velocity update logic.
-        // A more robust engine might have an `acceleration[3]` field in the Particle struct.
+        double r_vec[3] = {-p->position[0], -p->position[1], -p->position[2]};
+        double r_mag = sqrt(r_vec[0]*r_vec[0] + r_vec[1]*r_vec[1] + r_vec[2]*r_vec[2]);
+
+        if (r_mag < 1e-9) continue; // Avoid division by zero at the center
+
+        double f_mag = (G * M_central * p->mass) / (r_mag * r_mag);
+        double f_vec[3] = {f_mag * r_vec[0]/r_mag, f_mag * r_vec[1]/r_mag, f_mag * r_vec[2]/r_mag};
+
+        // a = F/m
+        p->acceleration[0] = f_vec[0] / p->mass;
+        p->acceleration[1] = f_vec[1] / p->mass;
+        p->acceleration[2] = f_vec[2] / p->mass;
     }
 }
 
-// This function updates particle positions and velocities based on forces.
+// Updates positions and velocities using the Velocity Verlet algorithm
 void update_particles(SimulationState* state, double dt) {
-    const double gravity[3] = {0.0, -9.8, 0.0}; // Same as above
-
     for (int i = 0; i < state->particle_count; i++) {
-        // Update velocity: v_new = v_old + a * dt
-        state->particles[i].velocity[0] += gravity[0] * dt;
-        state->particles[i].velocity[1] += gravity[1] * dt;
-        state->particles[i].velocity[2] += gravity[2] * dt;
+        Particle* p = &state->particles[i];
 
-        // Update position: p_new = p_old + v_new * dt
-        state->particles[i].position[0] += state->particles[i].velocity[0] * dt;
-        state->particles[i].position[1] += state->particles[i].velocity[1] * dt;
-        state->particles[i].position[2] += state->particles[i].velocity[2] * dt;
+        // 1. Update position: p_new = p_old + v * dt + 0.5 * a * dt^2
+        p->position[0] += p->velocity[0] * dt + 0.5 * p->acceleration[0] * dt * dt;
+        p->position[1] += p->velocity[1] * dt + 0.5 * p->acceleration[1] * dt * dt;
+        p->position[2] += p->velocity[2] * dt + 0.5 * p->acceleration[2] * dt * dt;
+
+        // Store old acceleration before recalculating
+        double old_accel[3];
+        memcpy(old_accel, p->acceleration, sizeof(old_accel));
+
+        // We will recalculate forces/accelerations at the new position
+        // For now, we assume it's done externally. We will do this in simulation_step.
+        // (A placeholder for the force update)
+
+        // 2. Update velocity: v_new = v_old + 0.5 * (a_old + a_new) * dt
+        // We will complete this in the main step function.
     }
 }
 
-// This is the main public function that runs one step.
+// The main simulation step using the Velocity Verlet algorithm
 void simulation_step(SimulationState* state, double dt) {
-    // In a more complex simulation, calculate_forces would be called first.
-    // For our simple test, all logic is in update_particles.
-    update_particles(state, dt);
+    // First half-step velocity update
+    for (int i = 0; i < state->particle_count; i++) {
+        Particle* p = &state->particles[i];
+        p->velocity[0] += 0.5 * p->acceleration[0] * dt;
+        p->velocity[1] += 0.5 * p->acceleration[1] * dt;
+        p->velocity[2] += 0.5 * p->acceleration[2] * dt;
+    }
+
+    // Update positions to full step
+    for (int i = 0; i < state->particle_count; i++) {
+        Particle* p = &state->particles[i];
+        p->position[0] += p->velocity[0] * dt;
+        p->position[1] += p->velocity[1] * dt;
+        p->position[2] += p->velocity[2] * dt;
+    }
+
+    // Calculate new forces/accelerations at the new positions
+    apply_forces(state);
+
+    // Second half-step velocity update
+    for (int i = 0; i < state->particle_count; i++) {
+        Particle* p = &state->particles[i];
+        p->velocity[0] += 0.5 * p->acceleration[0] * dt;
+        p->velocity[1] += 0.5 * p->acceleration[1] * dt;
+        p->velocity[2] += 0.5 * p->acceleration[2] * dt;
+    }
 
     state->current_time += dt;
+}
+
+// New function to load state from a file
+void load_simulation_state(const char* filename, SimulationState* state) {
+    FILE* file = fopen(filename, "r");
+    if (!file) {
+        perror("Error opening initial conditions file");
+        state->particle_count = 0;
+        return;
+    }
+
+    state->particle_count = 0;
+    double m, px, py, pz, vx, vy, vz;
+    while (fscanf(file, "%lf %lf %lf %lf %lf %lf %lf", &m, &px, &py, &pz, &vx, &vy, &vz) == 7) {
+        if (state->particle_count < MAX_PARTICLES) {
+            int i = state->particle_count;
+            state->particles[i] = (Particle){.id = i+1, .mass = m, .position = {px, py, pz}, .velocity = {vx, vy, vz}};
+            state->particle_count++;
+        }
+    }
+    fclose(file);
 }

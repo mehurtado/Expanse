@@ -3,29 +3,27 @@
 
 int main() {
     SimulationState state;
-    state.particle_count = 1;
     state.current_time = 0.0;
 
-    // Initialize our single particle at the origin with no initial velocity
-    state.particles[0] = (Particle){
-        .id = 1,
-        .mass = 1.0,
-        .position = {0.0, 0.0, 0.0},
-        .velocity = {0.0, 0.0, 0.0}
-    };
+    load_simulation_state("init.txt", &state);
 
-    double dt = 0.1; // Timestep of 0.1 seconds
-    int num_steps = 20;
+    if (state.particle_count == 0) {
+        printf("Failed to load particles. Exiting.\n");
+        return 1;
+    }
 
-    printf("Starting simulation...\n");
-    printf("Step | Time | Y-Position\n");
-    printf("-----|------|-----------\n");
+    printf("Loaded %d particle(s).\nStarting simulation...\n", state.particle_count);
+
+    double dt = 3600 * 24; // Timestep of one day in seconds
+    int num_steps = 365;
+
+    // Initial force calculation
+    apply_forces(&state);
 
     for (int i = 0; i <= num_steps; i++) {
-        // Print current state
-        printf("%4d | %4.1f | %9.4f\n", i, state.current_time, state.particles[0].position[1]);
-
-        // Advance the simulation
+        if (i % 10 == 0) { // Print output every 10 steps
+             printf("Day %3d: Pos=(%.2e, %.2e, %.2e)\n", i, state.particles[0].position[0], state.particles[0].position[1], state.particles[0].position[2]);
+        }
         simulation_step(&state, dt);
     }
 
