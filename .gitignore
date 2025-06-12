@@ -2,6 +2,8 @@
 *.o
 *.out
 *.exe
+*.dylib
+*.so
 
 # Executable file
 Astraeus
