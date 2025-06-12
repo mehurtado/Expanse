@@ -1,6 +1,7 @@
 // src/simulation.c
 #include "simulation.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <math.h>
 
@@ -8,18 +9,35 @@
 const double G = 6.67430e-11;
 const double M_central = 1.989e30; // Mass of the Sun
 
+// Creates a new SimulationState object
+SimulationState* simulation_create() {
+    SimulationState* state = (SimulationState*)malloc(sizeof(SimulationState));
+    if (!state) {
+        fprintf(stderr, "Failed to allocate memory for SimulationState\n");
+        return NULL;
+    }
+
+    state->particle_count = 0;
+    state->current_time = 0.0;
+    state->model = NULL; // Initialize model to NULL
+
+    return state;
+}
+
+void simulation_destroy(SimulationState* state) {
+    if (state) {
+        // Free the BFE model if it was allocated
+        free(state);
+    }
+}
+
 // Calculates forces and updates particle accelerations
 void apply_forces(SimulationState* state) {
     for (int i = 0; i < state->particle_count; i++) {
         Particle* p = &state->particles[i];
 
-        double r_vec[3] = {-p->position[0], -p->position[1], -p->position[2]};
-        double r_mag = sqrt(r_vec[0]*r_vec[0] + r_vec[1]*r_vec[1] + r_vec[2]*r_vec[2]);
-
-        if (r_mag < 1e-9) continue; // Avoid division by zero at the center
-
-        double f_mag = (G * M_central * p->mass) / (r_mag * r_mag);
-        double f_vec[3] = {f_mag * r_vec[0]/r_mag, f_mag * r_vec[1]/r_mag, f_mag * r_vec[2]/r_mag};
+        double f_vec[3];
+        bfe_calculate_force(p->position, state->model, f_vec);
 
         // a = F/m
         p->acceleration[0] = f_vec[0] / p->mass;
@@ -83,23 +101,36 @@ void simulation_step(SimulationState* state, double dt) {
     state->current_time += dt;
 }
 
-// New function to load state from a file
-void load_simulation_state(const char* filename, SimulationState* state) {
+// Loads the simulation state from a file
+void simulation_load_particles(SimulationState* state, const char* filename) {
+    if (!state) return;
+
     FILE* file = fopen(filename, "r");
     if (!file) {
-        perror("Error opening initial conditions file");
+        perror("[DEBUG] C: fopen failed");
         state->particle_count = 0;
         return;
     }
 
     state->particle_count = 0;
     double m, px, py, pz, vx, vy, vz;
-    while (fscanf(file, "%lf %lf %lf %lf %lf %lf %lf", &m, &px, &py, &pz, &vx, &vy, &vz) == 7) {
+
+    // We use a single 'if' instead of 'while' for this test
+    int items_read = fscanf(file, "%lf %lf %lf %lf %lf %lf %lf", &m, &px, &py, &pz, &vx, &vy, &vz);
+
+    if (items_read == 7) {
         if (state->particle_count < MAX_PARTICLES) {
             int i = state->particle_count;
-            state->particles[i] = (Particle){.id = i+1, .mass = m, .position = {px, py, pz}, .velocity = {vx, vy, vz}};
+            state->particles[i] = (Particle){
+                .id = i + 1, 
+                .mass = m, 
+                .position = {px, py, pz}, 
+                .velocity = {vx, vy, vz},
+                .acceleration = {0.0, 0.0, 0.0} // Also initialize acceleration
+            };
             state->particle_count++;
         }
-    }
+    } 
+
     fclose(file);
 }

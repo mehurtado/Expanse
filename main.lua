@@ -24,45 +24,39 @@ ffi.cdef[[
         double current_time;
     } SimulationState;
 
+    SimulationState* simulation_create();
+    void simulation_destroy(SimulationState* state);
     void simulation_step(SimulationState* state, double dt);
-    void load_simulation_state(const char* filename, SimulationState* state);
+    void simulation_load_particles(SimulationState* state, const char* filename);
     void apply_forces(SimulationState* state);
 ]]
 
 -- 3. Load our compiled C library
 local sim_lib = ffi.load("./libsimulation.dylib")
 
--- 4. Now, write the main application logic entirely in Lua!
+-- 1. Ask C to create the simulation state
+print("Lua: Creating simulation object...")
+local state_ptr = sim_lib.simulation_create()
 
-print("Lua Engine: Initializing simulation...")
-
--- Create an instance of our C struct directly from Lua
-local state = ffi.new("SimulationState")
-
--- Call our C function to load the initial conditions
-sim_lib.load_simulation_state("init.txt", state)
-
-if state.particle_count == 0 then
-    print("Failed to load particles. Exiting.")
+-- Error check
+if state_ptr == nil then
+    print("Error: C failed to create simulation state.")
     return
 end
 
-print("Loaded " .. state.particle_count .. " particle(s). Starting simulation...")
+-- 2. Ask C to load data into the state
+print("Lua: Loading particles...")
+sim_lib.simulation_load_particles(state_ptr, "init.txt")
 
-local dt = 3600 * 24 -- Timestep of one day
-local num_steps = 365
-
--- Initial force calculation
-sim_lib.apply_forces(state)
-
-for i = 0, num_steps do
-    if i % 10 == 0 then
-        -- Access C struct members directly from Lua
-        local p = state.particles[0]
-        print(string.format("Day %3d: Pos=(%.2e, %.2e, %.2e)", i, p.position[0], p.position[1], p.position[2]))
-    end
-
-    -- Call the C function to advance the simulation
-    sim_lib.simulation_step(state, dt)
+-- 3. Run the simulation loop
+print("Lua: Starting simulation loop...")
+local dt = 3600 * 24
+for i = 0, 365 do
+    sim_lib.simulation_step(state_ptr, dt)
 end
+print("Lua: Simulation finished.")
 
+-- 4. Ask C to clean up the memory
+print("Lua: Destroying simulation object...")
+sim_lib.simulation_destroy(state_ptr)
+print("Lua: Done.")
