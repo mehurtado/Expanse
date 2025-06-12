@@ -17,13 +17,14 @@ ffi.cdef[[
     } Particle;
 
     // From simulation.h
-    // #define MAX_PARTICLES 128
+    // #define MAX_PARTICLES 128 (lua doesn't like #define)
     typedef struct {
         Particle particles[128];
         int particle_count;
         double current_time;
     } SimulationState;
 
+    void basis_sincos(int mmax, double phi, double* c, double* s);
     SimulationState* simulation_create();
     void simulation_destroy(SimulationState* state);
     void simulation_step(SimulationState* state, double dt);
@@ -60,3 +61,21 @@ print("Lua: Simulation finished.")
 print("Lua: Destroying simulation object...")
 sim_lib.simulation_destroy(state_ptr)
 print("Lua: Done.")
+
+-- --- Test block for basis_sincos ---
+print("--- Testing basis_sincos ---")
+local mmax = 5
+local phi = 3.14159 / 2.0 -- 90 degrees
+
+-- Create C arrays for the output
+local c = ffi.new("double[?]", mmax + 1)
+local s = ffi.new("double[?]", mmax + 1)
+
+-- Call the C function
+sim_lib.basis_sincos(mmax, phi, c, s)
+
+-- Print the results from Lua
+for m = 0, mmax do
+    print(string.format("m=%d, cos(m*phi)=%.4f, sin(m*phi)=%.4f", m, c[m], s[m]))
+end
+print("----------------------------")
