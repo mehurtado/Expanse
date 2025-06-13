@@ -6,6 +6,7 @@ Astraeus
 *.out
 *.exe
 *.dylib
+*.dySYM/
 *.so
 
 # Build directory
