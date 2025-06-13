@@ -1,4 +1,4 @@
-# Astraeus
+# Expanse
 
 A high-performance N-body simulation engine written in C with a Lua scripting frontend.
 
