@@ -2,7 +2,7 @@
 *.o
 
 # Executables and libraries
-Astraeus
+Expanse
 *.out
 *.exe
 *.dylib
