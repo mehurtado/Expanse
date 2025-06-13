@@ -2,8 +2,7 @@
 
 A high-performance N-body simulation engine written in C with a Lua scripting frontend.
 
-Inspired by the methodologies of the `EXP` and `MilkyWay@home` projects.
-
+Built for `MilkyWay@home`, inspired by the methodologies of the `EXP`.
 ## Building
 
 (Instructions to come)
