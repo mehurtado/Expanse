@@ -72,8 +72,8 @@ print("Lua: Done.")
 
 -- --- Test block for basis_sincos ---
 print("--- Testing basis_sincos ---")
-local mmax = 5
-local phi = 3.14159 / 6.0 -- 90 degrees
+local mmax = 15
+local phi = math.pi / 6.0 -- 90 degrees
 
 -- Create C arrays for the output
 local c = ffi.new("double[?]", mmax + 1)
