@@ -1,5 +1,5 @@
-// src/astraeus.c
-#include "simulation.h" // Your existing simulation logic
+// src/expanse.c
+#include "simulation.h" 
 #include <stdio.h>
 #include <lua.h>
 #include <lualib.h>
@@ -25,7 +25,7 @@ static int l_new_simulation(lua_State *L) {
     return 1;
 }
 
-// A "getter" method to retrieve the simulation's current time
+// Retrieve the simulation's current time
 static int l_get_time(lua_State *L) {
     // 1. Get the simulation object from argument 1 (the 'self' or 'sim' object)
     SimulationState *sim = (SimulationState*)luaL_checkudata(L, 1, SIMULATION_META);
