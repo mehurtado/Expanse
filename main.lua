@@ -71,7 +71,7 @@ sim_lib.simulation_destroy(state_ptr)
 print("Lua: Done.")
 
 -- --- Test block for basis_sincos ---
-print("--- Testing basis_sincos ---")
+print("\n--- Testing basis_sincos ---")
 local mmax = 15
 local phi = math.pi / 6.0 -- pi/6 radians
 

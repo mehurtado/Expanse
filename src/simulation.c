@@ -10,7 +10,7 @@ const double G = 6.67430e-11;
 const double M_central = 1.989e30; // Mass of the Sun
 
 // Creates a new SimulationState object
-SimulationState* simulation_create() {
+SimulationState* simulation_create(const char* filename) {
     SimulationState* state = (SimulationState*)malloc(sizeof(SimulationState));
     if (!state) {
         fprintf(stderr, "Failed to allocate memory for SimulationState\n");
@@ -18,15 +18,19 @@ SimulationState* simulation_create() {
     }
 
     state->particle_count = 0;
+    state->particle_capacity = MAX_PARTICLES;
     state->current_time = 0.0;
-    state->model = NULL; // Initialize model to NULL
+    state->model = bfe_create_from_file(filename);
 
     return state;
 }
 
 void simulation_destroy(SimulationState* state) {
     if (state) {
-        // Free the BFE model if it was allocated
+        bfe_destroy(state->model);
+        if (state->particles) {
+            free(state->particles);
+        }
         free(state);
     }
 }
@@ -98,6 +102,10 @@ void simulation_step(SimulationState* state, double dt) {
         p->velocity[2] += 0.5 * p->acceleration[2] * dt;
     }
 
+    // Update BFE coefficients
+    bfe_evolve_coeffs(state->model, state->particles, state->particle_count, dt);
+
+    // Update current simulation time
     state->current_time += dt;
 }
 

@@ -4,17 +4,18 @@
 #include "particle.h"
 #include "bfe.h"
 
-#define MAX_PARTICLES 128 // A simple, fixed-size array for now
+#define MAX_PARTICLES 4e24 // A simple, fixed-size array for now
 
 typedef struct {
-    Particle particles[MAX_PARTICLES];
-    BFEModel* model;
+    Particle* particles;
     int particle_count;
+    int particle_capacity; 
+    BFEModel* model;
     double current_time;
 } SimulationState;
 
 // Creates a new SimulationState object
-SimulationState* simulation_create();
+SimulationState* simulation_create(const char* filename);
 
 // Destroys the SimulationState object and frees resources
 void simulation_destroy(SimulationState* state);
