@@ -28,7 +28,7 @@ ffi.cdef[[
     SimulationState* simulation_create();
     void simulation_destroy(SimulationState* state);
     void simulation_step(SimulationState* state, double dt);
-    void simulation_load_particles(SimulationState* state, const char* filename);
+    int simulation_load_particles(SimulationState* state, const char* filename);
     void apply_forces(SimulationState* state);
 ]]
 
@@ -47,7 +47,15 @@ end
 
 -- 2. Ask C to load data into the state
 print("Lua: Loading particles...")
-sim_lib.simulation_load_particles(state_ptr, "init.txt")
+count = sim_lib.simulation_load_particles(state_ptr, "init.txt")
+print("Lua: Loaded " .. count .. " particles.")
+
+-- Error check
+if count == 0 then
+    print("Error: No particles were loaded. Exiting.")
+    sim_lib.simulation_destroy(state_ptr)
+    return
+end
 
 -- 3. Run the simulation loop
 print("Lua: Starting simulation loop...")

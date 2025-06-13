@@ -102,23 +102,22 @@ void simulation_step(SimulationState* state, double dt) {
 }
 
 // Loads the simulation state from a file
-void simulation_load_particles(SimulationState* state, const char* filename) {
-    if (!state) return;
+int simulation_load_particles(SimulationState* state, const char* filename) {
+    if (!state) return 0;
 
     FILE* file = fopen(filename, "r");
     if (!file) {
         perror("[DEBUG] C: fopen failed");
         state->particle_count = 0;
-        return;
+        return 0;
     }
 
     state->particle_count = 0;
     double m, px, py, pz, vx, vy, vz;
 
-    // We use a single 'if' instead of 'while' for this test
     int items_read = fscanf(file, "%lf %lf %lf %lf %lf %lf %lf", &m, &px, &py, &pz, &vx, &vy, &vz);
 
-    if (items_read == 7) {
+    while (items_read == 7) {
         if (state->particle_count < MAX_PARTICLES) {
             int i = state->particle_count;
             state->particles[i] = (Particle){
@@ -130,7 +129,8 @@ void simulation_load_particles(SimulationState* state, const char* filename) {
             };
             state->particle_count++;
         }
+        items_read = fscanf(file, "%lf %lf %lf %lf %lf %lf %lf", &m, &px, &py, &pz, &vx, &vy, &vz);
     } 
-
     fclose(file);
+    return state->particle_count;
 }

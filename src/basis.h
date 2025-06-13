@@ -5,9 +5,6 @@
 // Calculates sin(m*phi) and cos(m*phi)
 void basis_sincos(int mmax, double phi, double* c, double* s);
 
-// Calculates Associated Legendre Polynomials, P_l^m(x)
-void basis_legendre(int lmax, double x, double* p);
-
 // Calculates both P_l^m(x) and their derivatives
 void basis_legendre_deriv(int lmax, double x, double* p, double* dp);
 

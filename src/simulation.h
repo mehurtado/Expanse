@@ -23,7 +23,7 @@ void simulation_destroy(SimulationState* state);
 void simulation_step(SimulationState* state, double dt);
 
 // Ths function initializes the simulation state
-void simulation_load_particles(SimulationState* state, const char* filename);
+int simulation_load_particles(SimulationState* state, const char* filename);
 
 // This function applies forces to all particles based on their current positions
 void apply_forces(SimulationState* state);
