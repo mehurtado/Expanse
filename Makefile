@@ -3,7 +3,8 @@
 # -g adds debug symbols for use with lldb
 # -Wall turns on all major warnings, which is good practice
 CC = clang
-CFLAGS = -fPIC -g -Wall
+# Add -Isrc/vendor to tell the compiler where to look for headers
+CFLAGS = -fPIC -g -Wall -Isrc/vendor
 
 # Linker flags
 # -shared creates a shared library (.dylib on macOS)
