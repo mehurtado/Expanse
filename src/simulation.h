@@ -4,7 +4,7 @@
 #include "particle.h"
 #include "bfe.h"
 
-#define MAX_PARTICLES 4e24 // A simple, fixed-size array for now
+#define MAX_PARTICLES 4e12 // A simple, fixed-size array for now
 
 typedef struct {
     Particle* particles;
