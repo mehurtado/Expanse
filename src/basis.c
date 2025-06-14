@@ -1,7 +1,7 @@
 // src/basis.c
 #include "basis.h"
 #include <math.h> // For sin() and cos()
-#include "milkyway_math_double.h"
+#include "milkyway/milkyway_math.h"
 
 void basis_sincos(int mmax, double phi, double* c, double* s) {
     c[0] = 1.0;
