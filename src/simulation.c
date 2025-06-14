@@ -22,6 +22,14 @@ SimulationState* simulation_create(const char* filename) {
     state->current_time = 0.0;
     state->model = bfe_create_from_file(filename);
 
+    state->particles = (Particle*)malloc(state->particle_capacity * sizeof(Particle));
+    if (!state->particles) {
+        fprintf(stderr, "Failed to allocate memory for particles\n");
+        bfe_destroy(state->model);
+        free(state);
+        return NULL;
+    }
+
     return state;
 }
 

@@ -1,13 +1,9 @@
 # Compiler and compilation flags
-# -fPIC is required for shared libraries
-# -g adds debug symbols for use with lldb
-# -Wall turns on all major warnings, which is good practice
 CC = clang
-# Add -Isrc/vendor to tell the compiler where to look for headers
-CFLAGS = -fPIC -g -Wall -Isrc/vendor
+# Add -MMD and -MP to generate dependency files
+CFLAGS = -fPIC -g -Wall -Isrc/vendor -MMD -MP
 
 # Linker flags
-# -shared creates a shared library (.dylib on macOS)
 LDFLAGS = -shared
 
 # LuaJIT flags found using the pkg-config tool
@@ -15,31 +11,33 @@ LUA_CFLAGS = $(shell pkg-config --cflags luajit)
 LUA_LIBS = $(shell pkg-config --libs luajit)
 
 # Project structure
-# List all your .c source files here
 SRCS = src/simulation.c src/bfe.c src/basis.c
-# Automatically generate a list of .o object files from the .c source files
 OBJS = $(SRCS:.c=.o)
-# The name of the final library we want to build
+# List of dependency files that will be auto-generated
+DEPS = $(SRCS:.c=.d)
 TARGET = libexpanse.dylib
 
 # --- Targets and Rules ---
 
-# The default target, executed when you just type "make"
+# The default target
 all: $(TARGET)
 
-# Rule for linking the final library from the object files
+# Rule for linking the final library
 $(TARGET): $(OBJS)
 	@echo "LD  $@"
 	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LUA_LIBS)
 
-# A pattern rule for compiling any .c file into a .o object file
-# $@ is an automatic variable meaning "the target name" (e.g., src/simulation.o)
-# $< is an automatic variable meaning "the first prerequisite" (e.g., src/simulation.c)
+# A pattern rule for compiling .c to .o
+# The CFLAGS now include -MMD -MP, which creates a .d file for each .c file
 %.o: %.c
 	@echo "CC  $@"
 	$(CC) $(CFLAGS) $(LUA_CFLAGS) -c $< -o $@
 
-# A target to clean up all compiled files
+# Clean up all compiled files AND the dependency files
 clean:
 	@echo "CLEAN"
-	rm -f $(OBJS) $(TARGET)
+	rm -f $(OBJS) $(DEPS) $(TARGET)
+
+# Tell make to include all the auto-generated dependency files.
+# This makes it aware of all the .h file dependencies.
+-include $(DEPS)

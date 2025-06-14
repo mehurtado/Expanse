@@ -1,11 +1,16 @@
--- main.lua
+--[[
+    Expanse Simulation Engine: Main Script
+    - Initializes the C library via LuaJIT's FFI.
+    - Contains unit tests for core mathematical basis functions.
+    - Contains the main logic for running a full simulation.
+--]]
 
--- 1. Load the FFI library
+-- --- 1. Initialization and FFI Definitions ---
+print("--- Initializing Expanse ---")
 local ffi = require("ffi")
 
--- 2. Define the C data structures and function prototypes for the FFI.
---    This tells LuaJIT what the C code looks like.
---    You can literally copy-paste your .h file contents here.
+-- Define all C structs and function prototypes for the FFI.
+-- This is a complete reflection of all your project's .h files.
 ffi.cdef[[
     // From particle.h
     typedef struct {
@@ -16,74 +21,117 @@ ffi.cdef[[
         int id;
     } Particle;
 
-    // From simulation.h
-    // #define MAX_PARTICLES 128 (lua doesn't like #define)
+    // From bfe.h
     typedef struct {
-        Particle particles[128];
+        int nmax;
+        int lmax;
+        double scale_radius;
+        double* S_coeffs;
+        double* T_coeffs;
+    } BFEModel;
+
+    // From simulation.h 
+    typedef struct {
+        Particle* particles;
         int particle_count;
+        int particle_capacity;
+        BFEModel* model;
         double current_time;
     } SimulationState;
 
+    // From basis.h
     void basis_sincos(int mmax, double phi, double* c, double* s);
+    void basis_legendre_deriv(int lmax, double x, double* p, double* dp);
+
+    // From simulation.h
     SimulationState* simulation_create();
     void simulation_destroy(SimulationState* state);
-    void simulation_step(SimulationState* state, double dt);
     int simulation_load_particles(SimulationState* state, const char* filename);
-    void apply_forces(SimulationState* state);
+    void simulation_step(SimulationState* state, double dt);
 ]]
 
--- 3. Load our compiled C library
-local sim_lib = ffi.load("./libsimulation.dylib")
+-- Load the compiled C shared library
+local ExpanseLib = ffi.load("./libexpanse.dylib")
+print("... C library loaded successfully.\n")
 
--- 1. Ask C to create the simulation state
-print("Lua: Creating simulation object...")
-local state_ptr = sim_lib.simulation_create()
 
--- Error check
-if state_ptr == nil then
-    print("Error: C failed to create simulation state.")
-    return
+-- --- 2. Unit Test Functions ---
+
+function test_basis_functions()
+    print("--- Running Unit Test: basis_sincos ---")
+    local mmax = 5
+    local phi = math.pi / 6.0 -- pi/6 radians
+    local c = ffi.new("double[?]", mmax + 1)
+    local s = ffi.new("double[?]", mmax + 1)
+    ExpanseLib.basis_sincos(mmax, phi, c, s)
+    for m = 0, mmax do
+        print(string.format("m=%d, cos(m*phi)=%.4f, sin(m*phi)=%.4f", m, c[m], s[m]))
+    end
+    print("... basis_sincos test complete.\n")
+
+    print("--- Running Unit Test: basis_legendre_deriv ---")
+    local lmax = 4
+    local x = 0.5
+    local size = (lmax + 1) * (lmax + 1)
+    local stride = lmax + 1
+    local p = ffi.new("double[?]", size)
+    local dp = ffi.new("double[?]", size)
+    ExpanseLib.basis_legendre_deriv(lmax, x, p, dp)
+    print("... P_l^m(x) values:")
+    for l = 0, lmax do
+        local row_str = string.format("l=%d:", l)
+        for m = 0, l do
+            row_str = row_str .. string.format(" %.4f", p[l * stride + m])
+        end
+        print(row_str)
+    end
+    print("... basis_legendre_deriv test complete.\n")
 end
 
--- 2. Ask C to load data into the state
-print("Lua: Loading particles...")
-count = sim_lib.simulation_load_particles(state_ptr, "init.txt")
-print("Lua: Loaded " .. count .. " particles.")
 
--- Error check
-if count == 0 then
-    print("Error: No particles were loaded. Exiting.")
-    sim_lib.simulation_destroy(state_ptr)
-    return
+-- --- 3. Main Simulation Logic ---
+
+function run_simulation()
+    print("--- Running Main Simulation ---")
+    local state_ptr = ExpanseLib.simulation_create()
+    if state_ptr == nil then
+        print("Error: C failed to create simulation state.")
+        return
+    end
+    print("... C simulation state created.")
+
+    local count = ExpanseLib.simulation_load_particles(state_ptr, "init.txt")
+    state_ptr.particle_count = count
+    print("... Loaded " .. state_ptr.particle_count .. " particle(s).")
+    if state_ptr.particle_count == 0 then
+        ExpanseLib.simulation_destroy(state_ptr)
+        return
+    end
+
+    print("... Starting simulation loop.")
+    local dt = 3600 * 24 -- Timestep of one day
+    local num_steps = 365
+    for i = 1, num_steps do
+        ExpanseLib.simulation_step(state_ptr, dt)
+        if i % 30 == 0 then -- Print status every 30 days
+            local p = state_ptr.particles[0]
+            print(string.format("Day %d: Pos=(%.2e, %.2e, %.2e)", i, p.position[0], p.position[1], p.position[2]))
+        end
+    end
+    print("... Simulation finished.")
+
+    print("... Cleaning up C memory.")
+    ExpanseLib.simulation_destroy(state_ptr)
+    print("--- Main Simulation Complete ---\n")
 end
 
--- 3. Run the simulation loop
-print("Lua: Starting simulation loop...")
-local dt = 3600 * 24
-for i = 0, 365 do
-    sim_lib.simulation_step(state_ptr, dt)
-end
-print("Lua: Simulation finished.")
 
--- 4. Ask C to clean up the memory
-print("Lua: Destroying simulation object...")
-sim_lib.simulation_destroy(state_ptr)
-print("Lua: Done.")
+-- --- 4. Execution ---
 
--- --- Test block for basis_sincos ---
-print("\n--- Testing basis_sincos ---")
-local mmax = 15
-local phi = math.pi / 6.0 -- pi/6 radians
+-- Run the tests first to verify math functions
+test_basis_functions()
 
--- Create C arrays for the output
-local c = ffi.new("double[?]", mmax + 1)
-local s = ffi.new("double[?]", mmax + 1)
+-- Then run the main simulation
+run_simulation()
 
--- Call the C function
-sim_lib.basis_sincos(mmax, phi, c, s)
-
--- Print the results from Lua
-for m = 0, mmax do
-    print(string.format("m=%d, cos(m*phi)=%.4f, sin(m*phi)=%.4f", m, c[m], s[m]))
-end
-print("----------------------------")
+print("All tasks finished.")
