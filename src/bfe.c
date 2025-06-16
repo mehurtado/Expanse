@@ -7,7 +7,18 @@
 // Creates a BFEModel from a file
 BFEModel* bfe_create_from_file(const char* filename) {
     // TODO: Implement the real BFE model loading from file.
-    return NULL;
+    BFEModel* model = (BFEModel*)malloc(sizeof(BFEModel));
+    if (!model) {
+        fprintf(stderr, "Failed to allocate memory for BFEModel\n");
+        return NULL;
+    }
+    model->nmax = 0; // Set default values
+    model->lmax = 0;
+    model->scale_radius = 1.0; // Default scaling factor
+    model->S_coeffs = NULL; // Initialize coefficients to NULL
+    model->T_coeffs = NULL;
+
+    return model;
 }
 
 // Destroys given BFEModel and frees resources

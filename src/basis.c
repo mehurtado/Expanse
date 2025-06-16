@@ -26,7 +26,7 @@ void basis_legendre_deriv(int lmax, double x, double* p, double* dp) {
 
     // --- Part 1: Calculate P_l^m(x) ---
     // Base case P_0^0 = 1
-    p[0 * stride + 0] = 1.0;
+    p[0] = 1.0;
 
     if (lmax == 0) return;
 
@@ -49,12 +49,12 @@ void basis_legendre_deriv(int lmax, double x, double* p, double* dp) {
         }
     }
 
-    // --- Part 2: Calculate dP/dx (The Derivatives) ---
+    // --- Part 2: Calculate dP/dx ---
     if (dp == NULL) {
         return; // Skip derivative calculation if not needed
     }
     
-    dp[0 * stride + 0] = 0.0;
+    dp[0] = 0.0;
     if (lmax == 0) return;
     
     for (int l = 1; l <= lmax; l++) {
